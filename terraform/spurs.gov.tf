@@ -46,6 +46,35 @@ resource "aws_route53_record" "spurs_gov_www_cname" {
   records = ["us-spurs.github.io."]
 }
 
+# Google Workspace inbound mail routing.
+resource "aws_route53_record" "spurs_gov_mx" {
+  zone_id = aws_route53_zone.spurs_gov_zone.zone_id
+  name    = "spurs.gov."
+  type    = "MX"
+  ttl     = 300
+  records = ["1 smtp.google.com."]
+}
+
+# Authorize Google Workspace as the current outbound sender. DKIM is added
+# separately after Google Admin generates the domain-specific selector/key.
+resource "aws_route53_record" "spurs_gov_spf" {
+  zone_id = aws_route53_zone.spurs_gov_zone.zone_id
+  name    = "spurs.gov."
+  type    = "TXT"
+  ttl     = 300
+  records = ["v=spf1 include:_spf.google.com ~all"]
+}
+
+# Federal DMARC baseline for a second-level .gov zone. Reporting to the DHS
+# aggregate mailbox is required by this repository's email-security tests.
+resource "aws_route53_record" "spurs_gov_dmarc" {
+  zone_id = aws_route53_zone.spurs_gov_zone.zone_id
+  name    = "_dmarc.spurs.gov."
+  type    = "TXT"
+  ttl     = 300
+  records = ["v=DMARC1; p=reject; pct=100; rua=mailto:reports@dmarc.cyber.dhs.gov; adkim=s; aspf=s"]
+}
+
 # GitHub Pages provisions HTTPS through Let's Encrypt for correctly
 # configured custom domains. Keep CAA explicit so certificate issuance is
 # allowed without opening the zone to unrelated certificate authorities.
